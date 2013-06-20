@@ -1,0 +1,15 @@
+*.o
+*~
+asciivol
+dumpcvm
+library/libetree.a
+library/libetree.so
+lltoxy
+mirrorkims
+mirrorrobs
+pickrecord
+querycvm
+querymesh
+scancvm
+setappmeta
+showdbctl
