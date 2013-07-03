@@ -6,7 +6,7 @@
 
 asciivol
 dumpcvm
-library/libetree.a
+etree/libetree.a
 lltoxy
 mirrorkims
 mirrorrobs
