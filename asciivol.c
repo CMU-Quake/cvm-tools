@@ -354,13 +354,11 @@ int main(int argc, char **argv)
 
     if ( option == 3) {
     int l, lmax;
+    double rx, ry, rz;
 
     d = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
     d = sqrt(d);
 
-    //fprintf(stdout,"\n Value of kmax is: %d\n",kmax);
-    //fprintf(stdout,"Value of d is: %f\n",d);
- 
     lmax = (int)( d / spacing ) + 1;
 
     for (k = 0; k < kmax; k++) 
@@ -368,6 +366,7 @@ int main(int argc, char **argv)
     	node.k = k;
     	if ( k == kmax-1 )
     	{
+    		rz = z;
     		z = z - tolerancefence;
     	}
     	queryAddr.z = (etree_tick_t)(z / tickSize);
@@ -378,10 +377,12 @@ int main(int argc, char **argv)
     		y = y1 + l * ( (y2 - y1) * spacing / d );
 
     		if ( x == meta->region_length_east_m ) {
+    			rx = x;
     			x = x - tolerancefence;
     		}
 
     		if ( y == meta->region_length_north_m ) {
+    			ry = y;
     			y = y - tolerancefence;
     		}
 
@@ -429,6 +430,19 @@ int main(int argc, char **argv)
     			fprintf(stderr, "Cannot assign correct field\n");
     			exit(1);
     			break;
+    		}
+
+    		HERE XXXXXX
+
+    		/* restoring fence values */
+    		if ( rx == meta->region_length_east_m ) {
+    			x = rx;
+    		}
+    		if ( ry == meta->region_length_north_m ) {
+    			y = ry;
+    		}
+    		if ( k == kmax-1 ) {
+    			z = rz;
     		}
 
     		/* printing the node */
