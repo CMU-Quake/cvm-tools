@@ -1,8 +1,8 @@
 #ifndef WORKDIR
-    WORKDIR = $(PWD)
+	WORKDIR = $(PWD)
 #endif
 
-include $(WORKDIR)/systemdef.mk
+include $(WORKDIR)/system.mk
 include $(WORKDIR)/common.mk
 
 CFLAGS += -I$(ETREE_DIR) 
@@ -13,6 +13,8 @@ LOADLIBES += $(ETREE_DIR)/libetree.a
 OBJECTS = cvm.o .setdbctl.o showdbctl.o
 
 TARGET = showdbctl querycvm querymesh scancvm dumpcvm pickrecord asciivol lltoxy mirrorkims mirrorrobs setappmeta
+
+.PHONY: all clean cleanall etree cvmtools 
 
 all: etree cvmtools
 
@@ -36,10 +38,10 @@ setappmeta: cvm.o setappmeta.o
 
 clean:
 	$(MAKE) -C $(ETREE_DIR) WORKDIR=$(WORKDIR) clean
-    rm -f $(OBJECTS) core *.o *~
+	rm -f $(OBJECTS) core *.o *~
 
 cleanall:
 	$(MAKE) -C $(ETREE_DIR) WORKDIR=$(WORKDIR) cleanall
-    rm -f $(OBJECTS) $(TARGET) core *~
+	rm -f $(OBJECTS) $(TARGET) core *.o *~
 
 

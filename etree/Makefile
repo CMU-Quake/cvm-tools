@@ -1,5 +1,5 @@
 #ifndef WORKDIR
-    WORKDIR = $(PWD)/..
+	WORKDIR = $(PWD)/..
 #endif
 
 -include $(WORKDIR)/systemdef.mk
@@ -15,12 +15,12 @@ TARGET = libetree.a
 all: $(TARGET)
 
 libetree.a: $(OBJECTS)
-    ar rcs libetree.a $(OBJECTS) 
-    ranlib libetree.a
+	ar rcs libetree.a $(OBJECTS)
+	ranlib libetree.a
 
 clean:
-    rm -f $(OBJECTS) *~ 
+	rm -f $(OBJECTS) *~ 
 
 cleanall:
-    rm -f $(TARGET) $(OBJECTS) *~   
+	rm -f $(TARGET) $(OBJECTS) *~   
 
