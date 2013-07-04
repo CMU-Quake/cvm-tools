@@ -3,6 +3,8 @@
 
 .cproject
 .project
+.settings
+.DS_Store
 
 asciivol
 dumpcvm
