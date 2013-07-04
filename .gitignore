@@ -1,9 +1,14 @@
 *.o
 *~
+
+.cproject
+.project
+.settings
+.DS_Store
+
 asciivol
 dumpcvm
-library/libetree.a
-library/libetree.so
+etree/libetree.a
 lltoxy
 mirrorkims
 mirrorrobs

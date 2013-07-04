@@ -33,7 +33,7 @@ void usage(char *arg)
     fprintf(stdout,"\n\t Option 2: horizontal cut\n");
     fprintf(stdout,"\t\t %s option cvmetree output field spacing depth \n",arg);
     fprintf(stdout,"\n\t Option 3: vertical cut\n");
-    fprintf(stdout,"\t\t %s option cvmetree output field spacing depth x1 y1 x2 y2 d\n",arg);
+    fprintf(stdout,"\t\t %s option cvmetree output field spacing depth x1 y1 x2 y2 dz\n",arg);
     fprintf(stdout,"\n\t Option 4: isosurface\n");
     fprintf(stdout,"\t\t %s option cvmetree output field spacing target dz \n",arg);
     fprintf(stdout,"\n\t Field: 1=Vp 2=Vs 3=rho 4=Qp 5=Qs\n\n");
@@ -46,14 +46,15 @@ int main(int argc, char **argv)
     char           *cvmetree, *output;
     FILE           *os;
 
-    int             i=0, j=0, k=0, spacing, res, count = 0;
+    int             i=0, j=0, k=0, res, count = 0;
     int             imax = 0, jmax = 0, kmax = 0;
     int             field = 0;
     int             option = 0;
 
     double          x, y, z;
+    double          rx, ry, rz;
     double          x1, y1, x2, y2;
-    double          d;
+    double          d, spacing;
     double          elapsed;
     double          tickSize;
     double          tolerancefence = 0.0001;
@@ -74,16 +75,16 @@ int main(int argc, char **argv)
 
     /* checking amount of args */
     if( (argc < 6) || (argc > 8) ) {
-      if ( argc != 12 ) {
-        usage( argv[0] );
-        exit(1);
-      }
+        if ( argc != 12 ) {
+            usage( argv[0] );
+            exit(1);
+        }
     }
 
     /* reading option */
     if ( sscanf(argv[1], "%d", &option) != 1){
         usage(argv[0]);
-	exit(1);
+        exit(1);
     }
     fprintf(stdout, "Option selected: %d\n", option);
 
@@ -101,44 +102,44 @@ int main(int argc, char **argv)
     fprintf(stdout, "Field:           %d\n", field);
 
     /* reading spacing */
-    if(sscanf(argv[5], "%d", &spacing) != 1){
+    if(sscanf(argv[5], "%lf", &spacing) != 1){
         usage(argv[0]);
         exit(1);
     }
-    fprintf(stdout, "Spacing:         %d\n", spacing);
+    fprintf(stdout, "Spacing:         %f\n", spacing);
 
     /* reading depth */
     if ( (option == 2) || (option == 3) ) {
         if(sscanf(argv[6], "%lf", &depth) != 1){
-	    usage(argv[0]);
-	    exit(1);
-	}
-	fprintf(stdout, "Depth:           %lf\n", depth);
+            usage(argv[0]);
+            exit(1);
+        }
+        fprintf(stdout, "Depth:           %lf\n", depth);
     }
 
     /* reading coordinates for vertical slice */
     if ( (option == 3) ) {
         if( (sscanf(argv[7],  "%lf", &x1) != 1) || 
-	    (sscanf(argv[8],  "%lf", &y1) != 1) || 
-	    (sscanf(argv[9],  "%lf", &x2) != 1) || 
-	    (sscanf(argv[10], "%lf", &y2) != 1) ||
-	    (sscanf(argv[11], "%lf", &d)  != 1) )
-	{
-	    usage(argv[0]);
-	    exit(1);
-	}
-	fprintf(stdout, "(x1,y1):(x2,y2)      (%lf,%lf):(%lf,%lf)\n", x1,y1,x2,y2);
+                (sscanf(argv[8],  "%lf", &y1) != 1) ||
+                (sscanf(argv[9],  "%lf", &x2) != 1) ||
+                (sscanf(argv[10], "%lf", &y2) != 1) ||
+                (sscanf(argv[11], "%lf", &dz)  != 1) )
+        {
+            usage(argv[0]);
+            exit(1);
+        }
+        fprintf(stdout, "(x1,y1):(x2,y2)      (%lf,%lf):(%lf,%lf)\n", x1,y1,x2,y2);
     }
 
     /* reading target value and depth-step for isosurface */
     if ( option == 4 ) {
         if( ( sscanf(argv[6], "%lf", &target) != 1 ) ||
-	    ( sscanf(argv[7], "%lf", &dz) != 1 ) ) {
-	    usage(argv[0]);
-	    exit(1);
-	}
-	fprintf(stdout, "Target:          %lf\n", target);
-	fprintf(stdout, "dz:              %lf\n", dz);
+                ( sscanf(argv[7], "%lf", &dz) != 1 ) ) {
+            usage(argv[0]);
+            exit(1);
+        }
+        fprintf(stdout, "Target:          %lf\n", target);
+        fprintf(stdout, "dz:              %lf\n", dz);
     }
 
     /* Open the cvm-etree */
@@ -150,7 +151,7 @@ int main(int argc, char **argv)
     }
 
     /* Open output file */
-   
+
     os = fopen(output,"w");
     if ( os == NULL ) {
         fprintf(stderr, "Cannot open the output file");
@@ -168,31 +169,31 @@ int main(int argc, char **argv)
     tickSize = meta->region_length_east_m / meta->domain_endpoint_x;
     queryAddr.level = ETREE_MAXLEVEL;
 
-    imax = meta->region_length_east_m / spacing+1;
-    jmax = meta->region_length_north_m / spacing+1;
+    imax = (int)(meta->region_length_east_m / spacing) + 1;
+    jmax = (int)(meta->region_length_north_m / spacing) + 1;
 
     switch ( option )
     {
-        case 1:
-	    kmax = (int)( ( meta->region_depth_deep_m - meta->region_depth_shallow_m ) / spacing ) + 1;
-	    z = 0;
-	    break;
-        case 2:
-            kmax = 1;
-	    z = depth;
-	    break;
-        case 3:
-            kmax = (int)( depth / spacing ) + 1;
-	    z = 0;
-	    break;
-        case 4:
-            kmax = 1;
-	    z = 0;
-	    break;
-        default:
-	    fprintf(stderr, "Cannot assign correct option for kmax\n");
-	    exit(1);
-	    break;
+    case 1:
+        kmax = (int)( ( meta->region_depth_deep_m - meta->region_depth_shallow_m ) / spacing ) + 1;
+        z = 0;
+        break;
+    case 2:
+        kmax = 1;
+        z = depth;
+        break;
+    case 3:
+        kmax = (int)( depth / dz ) + 1;
+        z = 0;
+        break;
+    case 4:
+        kmax = 1;
+        z = 0;
+        break;
+    default:
+        fprintf(stderr, "Cannot assign correct option for kmax\n");
+        exit(1);
+        break;
     }
 
     cvm_freedbctl(meta);
@@ -200,152 +201,170 @@ int main(int argc, char **argv)
     printf("Mesh dimensions: %d x %d x %d\n",imax,jmax,kmax);
 
     if ( (option == 1) || (option == 2) || (option == 4)) {
-    /* Generate mesh */
-    for (k = 0; k < kmax; k++) 
-    {
-        node.k = k;
-	if ( (k == kmax-1) && (option == 1) ) 
-	{
-	    z = z - tolerancefence;
-	}
-	queryAddr.z = (etree_tick_t)(z / tickSize);
-
-	gettimeofday(&start,NULL);
-
-	y = 0;
-	for (j = 0; j < jmax; j++) 
+        /* Generate mesh */
+        for (k = 0; k < kmax; k++)
         {
-            node.j = j;
-	    if ( j == jmax-1 ) 
-	    {
-	        y = y - tolerancefence;
-	    }
-	    queryAddr.y = (etree_tick_t)(y / tickSize);
+            node.k = k;
+            if ( (k == kmax-1) && (option == 1) )
+            {
+                rz = z;
+                z = z - tolerancefence;
+            }
+            queryAddr.z = (etree_tick_t)(z / tickSize);
 
+            gettimeofday(&start,NULL);
 
-	    x = 0;
-	    fprintf(stdout,".");
-	    fflush(stdout);
-	    for (i = 0; i < imax; i++) 
-	    {
-	        node.i = i;
-		if ( i == imax-1 ) 
-		{
-		    x = x - tolerancefence;
-		}
-		queryAddr.x = (etree_tick_t)(x / tickSize);
-
-	    OPTIONROLLBACK:
-
-		res = etree_search(cvm, queryAddr, NULL, NULL, &prop);
-		if(res != 0) {
-   	            fprintf(stderr, "Cannot find the query point (%f,%f,%f)\n", x, y, z);
-	            exit(1);
-		}
-	
-		node.Vp  = prop.Vp;
-		node.Vs  = prop.Vs;
-		node.rho = prop.rho;
-
-		/* Min Vs */
-		/*
-		if(node.Vs < 500)
-		{
-		    Vs_lt500++;
-		    node.Vs = 500;
-		    node.Vp = 1500;
-		}
-		*/
-	
-		/* Qp and Qs via Brocher's */
-		Vs_kms  = node.Vs / 1000; /* In km/s */
-		node.Qs = (8.2184 * Vs_kms * Vs_kms * Vs_kms)
-		        - (25.225 * Vs_kms * Vs_kms)
-		        + (104.13 * Vs_kms) - 16;
-	        node.Qp = 2 * node.Qs;
-
-		/* selecting field to print */
-
-	        switch ( field ) 
+            y = 0;
+            for (j = 0; j < jmax; j++)
+            {
+                node.j = j;
+                if ( j == jmax-1 )
                 {
-		    case 1:
-		        fieldvalue = node.Vp;
-			break;
-		    case 2:
-		        fieldvalue = node.Vs;
-			break;
-		    case 3:
-		        fieldvalue = node.rho;
-			break;
-		    case 4:
-		        fieldvalue = node.Qp;
-			break;
-		    case 5:
-		        fieldvalue = node.Qs;
-			break;
-		    default:
-		        fprintf(stderr, "Cannot assign correct field\n");
-			exit(1);
-			break;
-		}
+                    ry = y;
+                    y = y - tolerancefence;
+                }
+                queryAddr.y = (etree_tick_t)(y / tickSize);
 
-		if ( option == 4 ) {
-		  if ( fieldvalue < target ) {
-		    z = z + dz;
-		    fprintf(stdout,"+");
-		    queryAddr.z = (etree_tick_t)(z / tickSize);
-		    goto OPTIONROLLBACK;
-		  }
-		  // z = 0;
-		  // queryAddr.z = (etree_tick_t)(z / tickSize);
-		}
 
-		/* printing the node */
+                x = 0;
+                fprintf(stdout,".");
+                fflush(stdout);
+                for (i = 0; i < imax; i++)
+                {
+                    node.i = i;
+                    if ( i == imax-1 )
+                    {
+                        ry = y;
+                        x = x - tolerancefence;
+                    }
+                    queryAddr.x = (etree_tick_t)(x / tickSize);
 
-		switch ( option ) {
-		    case 1:
-		        if ( fprintf(os, "%12.4f %12.4f %12.4f %12.4f\n", x, y, z, fieldvalue) < 0 ) {
-			    fprintf(stderr, "Error writing output values for (%d,%d,%d)", i, j, k);
-			    exit(1);
-			}
-			break;
-		    case 2:
-		        if ( fprintf(os, "%12.4f %12.4f %12.4f\n", x, y, fieldvalue) < 0 ) {
-			    fprintf(stderr, "Error writing output values for (%d,%d)", i, j);
-			    exit(1);
-			}
-			break;
-		    case 4:
-		        if ( fprintf(os, "%12.4f %12.4f %12.4f\n", x, y, z) < 0 ) {
-			    fprintf(stderr, "Error writing output values for (%d,%d)", i, j);
-			    exit(1);
-			}
-		        z = 0;
-			queryAddr.z = (etree_tick_t)(z / tickSize);
-			break;
-		}
+                    OPTIONROLLBACK:
 
-		x += spacing;
-		count++;
-	    }
+                    res = etree_search(cvm, queryAddr, NULL, NULL, &prop);
+                    if(res != 0) {
+                        fprintf(stderr, "Cannot find the query point (%f,%f,%f)\n", x, y, z);
+                        exit(1);
+                    }
 
-	    if ( j % 50 == 0 ) {
-	      fprintf(stdout,"\n");
-	      fflush(stdout);
-	    }
-	    y += spacing;
-	}
+                    node.Vp  = prop.Vp;
+                    node.Vs  = prop.Vs;
+                    node.rho = prop.rho;
 
-	gettimeofday (&end, NULL);
-	elapsed = ( end.tv_sec - start.tv_sec ) * 1000.0 
-	        + ( end.tv_usec - start.tv_usec ) / 1000.0;
+                    /* Min Vs */
+                    /*
+                    if(node.Vs < 500)
+                    {
+                        Vs_lt500++;
+                        node.Vs = 500;
+                        node.Vp = 1500;
+                    }
+                    */
 
-	printf("\n Finished slice %d (%dpts) in %.2fms %fpps\n",
-	        k,(imax*jmax),elapsed,(imax*jmax)/(elapsed/1000));
+                    /* Qp and Qs via Brocher's */
+                    Vs_kms  = node.Vs / 1000; /* In km/s */
+                    node.Qs = (8.2184 * Vs_kms * Vs_kms * Vs_kms)
+		                - (25.225 * Vs_kms * Vs_kms)
+		                + (104.13 * Vs_kms) - 16;
+                    node.Qp = 2 * node.Qs;
 
-	z += spacing;
-    }
-    }
+                    /* selecting field to print */
+
+                    switch ( field )
+                    {
+                    case 1:
+                        fieldvalue = node.Vp;
+                        break;
+                    case 2:
+                        fieldvalue = node.Vs;
+                        break;
+                    case 3:
+                        fieldvalue = node.rho;
+                        break;
+                    case 4:
+                        fieldvalue = node.Qp;
+                        break;
+                    case 5:
+                        fieldvalue = node.Qs;
+                        break;
+                    default:
+                        fprintf(stderr, "Cannot assign correct field\n");
+                        exit(1);
+                        break;
+                    }
+
+                    if ( option == 4 ) {
+                        if ( fieldvalue < target ) {
+                            z = z + dz;
+                            fprintf(stdout,"+");
+                            queryAddr.z = (etree_tick_t)(z / tickSize);
+                            goto OPTIONROLLBACK;
+                        }
+                        // z = 0;
+                        // queryAddr.z = (etree_tick_t)(z / tickSize);
+                    }
+
+                    /* restoring fence values */
+
+                    if ( i == imax-1 )
+                    {
+                        x = rx;
+                    }
+                    if ( j == jmax-1 )
+                    {
+                        y = ry;
+                    }
+                    if ( (k == kmax-1) && (option == 1) )
+                    {
+                        z = rz;
+                    }
+
+                    /* printing the node */
+
+                    switch ( option ) {
+                    case 1:
+                        if ( fprintf(os, "%12.4f %12.4f %12.4f %12.4f\n", x, y, z, fieldvalue) < 0 ) {
+                            fprintf(stderr, "Error writing output values for (%d,%d,%d)", i, j, k);
+                            exit(1);
+                        }
+                        break;
+                    case 2:
+                        if ( fprintf(os, "%12.4f %12.4f %12.4f\n", x, y, fieldvalue) < 0 ) {
+                            fprintf(stderr, "Error writing output values for (%d,%d)", i, j);
+                            exit(1);
+                        }
+                        break;
+                    case 4:
+                        if ( fprintf(os, "%12.4f %12.4f %12.4f\n", x, y, z) < 0 ) {
+                            fprintf(stderr, "Error writing output values for (%d,%d)", i, j);
+                            exit(1);
+                        }
+                        z = 0;
+                        queryAddr.z = (etree_tick_t)(z / tickSize);
+                        break;
+                    }
+
+                    x += spacing;
+                    count++;
+                } /* end for i */
+
+                if ( j % 50 == 0 ) {
+                    fprintf(stdout,"\n");
+                    fflush(stdout);
+                }
+                y += spacing;
+            } /* end for j */
+
+            gettimeofday (&end, NULL);
+            elapsed = ( end.tv_sec - start.tv_sec ) * 1000.0
+                    + ( end.tv_usec - start.tv_usec ) / 1000.0;
+
+            printf("\n Finished slice %d (%dpts) in %.2fms %fpps\n",
+                    k,(imax*jmax),elapsed,(imax*jmax)/(elapsed/1000));
+
+            z += spacing;
+        } /* end for k */
+    } /* end if option 1, 2 or 4 */
 
 
     /* ----------------------------- */
@@ -353,116 +372,115 @@ int main(int argc, char **argv)
     /* ----------------------------- */
 
     if ( option == 3) {
-    int l, lmax;
+        int l, lmax;
 
-    d = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
-    d = sqrt(d);
+        d = (x2-x1)*(x2-x1) + (y2-y1)*(y2-y1);
+        d = sqrt(d);
 
-    //fprintf(stdout,"\n Value of kmax is: %d\n",kmax);
-    //fprintf(stdout,"Value of d is: %f\n",d);
- 
-    lmax = (int)( d / spacing ) + 1;
+        lmax = (int)( d / spacing ) + 1;
 
-    for (k = 0; k < kmax; k++) 
-    {
-        node.k = k;
-	if ( k == kmax-1 ) 
-	{
-	    z = z - tolerancefence;
-	}
-	queryAddr.z = (etree_tick_t)(z / tickSize);
+        for (k = 0; k < kmax; k++)
+        {
+            node.k = k;
+            if ( k == kmax-1 )
+            {
+                rz = z;
+                z = z - tolerancefence;
+            }
+            queryAddr.z = (etree_tick_t)(z / tickSize);
 
-	for (l = 0; l < lmax; l++) 
-	{
-	    x = x1 + l * ( (x2 - x1) * spacing / d );
-	    y = y1 + l * ( (y2 - y1) * spacing / d );
+            for (l = 0; l < lmax; l++)
+            {
+                x = x1 + l * ( (x2 - x1) * spacing / d );
+                y = y1 + l * ( (y2 - y1) * spacing / d );
 
-	    if ( x == meta->region_length_east_m ) {
-	      x = x - tolerancefence;
-	      //fprintf(stdout,"\n Value of x = %f\n",x);
-	    }
+                if ( x == meta->region_length_east_m ) {
+                    rx = x;
+                    x = x - tolerancefence;
+                }
 
-	    if ( y == meta->region_length_north_m ) {
-	      y = y - tolerancefence;
-	      //fprintf(stdout,"\n Value of y = %f\n",y);
-	    }
+                if ( y == meta->region_length_north_m ) {
+                    ry = y;
+                    y = y - tolerancefence;
+                }
 
-	    /*
-	    if ( l == lmax-1 ) 
-	    {
-	        x = x - tolerancefence;
-		y = y - tolerancefence;
-	    }
-	    */
+                queryAddr.x = (etree_tick_t)(x / tickSize);
+                queryAddr.y = (etree_tick_t)(y / tickSize);
 
-	    queryAddr.x = (etree_tick_t)(x / tickSize);
-	    queryAddr.y = (etree_tick_t)(y / tickSize);
+                res = etree_search(cvm, queryAddr, NULL, NULL, &prop);
+                if(res != 0)
+                {
+                    fprintf(stderr, "Cannot find the query point (%f,%f,%f)\n", x, y, z);
+                    exit(1);
+                }
 
-	    res = etree_search(cvm, queryAddr, NULL, NULL, &prop);
-	    if(res != 0) 
-	    {
-	        fprintf(stderr, "Cannot find the query point (%f,%f,%f)\n", x, y, z);
-		exit(1);
-	    }
-	
-	    node.Vp  = prop.Vp;
-	    node.Vs  = prop.Vs;
-	    node.rho = prop.rho;
+                node.Vp  = prop.Vp;
+                node.Vs  = prop.Vs;
+                node.rho = prop.rho;
 
-	    /* Qp and Qs via Brocher's */
-	    Vs_kms  = node.Vs / 1000; /* In km/s */
-	    node.Qs = (8.2184 * Vs_kms * Vs_kms * Vs_kms)
-	            - (25.225 * Vs_kms * Vs_kms)
-	            + (104.13 * Vs_kms) - 16;
-	    node.Qp = 2 * node.Qs;
+                /* Qp and Qs via Brocher's */
+                Vs_kms  = node.Vs / 1000; /* In km/s */
+                node.Qs = (8.2184 * Vs_kms * Vs_kms * Vs_kms)
+	            		        - (25.225 * Vs_kms * Vs_kms)
+	            		        + (104.13 * Vs_kms) - 16;
+                node.Qp = 2 * node.Qs;
 
-	    /* selecting field to print */
+                /* selecting field to print */
 
-	    switch ( field ) 
-	    {
-	        case 1:
-		    fieldvalue = node.Vp;
-		    break;
-	        case 2:
-	            fieldvalue = node.Vs;
-		    break;
-	        case 3:
-		    fieldvalue = node.rho;
-		    break;
-	        case 4:
-		    fieldvalue = node.Qp;
-		    break;
-	        case 5:
-		    fieldvalue = node.Qs;
-		    break;
-	        default:
-		    fprintf(stderr, "Cannot assign correct field\n");
-		    exit(1);
-		    break;
-	    }
+                switch ( field )
+                {
+                case 1:
+                    fieldvalue = node.Vp;
+                    break;
+                case 2:
+                    fieldvalue = node.Vs;
+                    break;
+                case 3:
+                    fieldvalue = node.rho;
+                    break;
+                case 4:
+                    fieldvalue = node.Qp;
+                    break;
+                case 5:
+                    fieldvalue = node.Qs;
+                    break;
+                default:
+                    fprintf(stderr, "Cannot assign correct field\n");
+                    exit(1);
+                    break;
+                }
 
-	    /* printing the node */
+                /* restoring fence values */
+                if ( rx == meta->region_length_east_m ) {
+                    x = rx;
+                }
+                if ( ry == meta->region_length_north_m ) {
+                    y = ry;
+                }
+                if ( k == kmax-1 ) {
+                    z = rz;
+                }
 
-/* 	    if ( fprintf(os, "%d %12.4f %12.4f %12.4f %12.4f\n", spacing*l, x, y, z, fieldvalue) < 0 )  */
-	    if ( fprintf(os, "%d %12.4f %12.4f\n", spacing*l, z, fieldvalue) < 0 ) 
-	    {
-	        fprintf(stderr, "Error writing output values for (%d,%d)", k, l);
-		exit(1);
+                /* printing the node */
 
-	    }
-	    fprintf(stdout,".");
+                /* 	    if ( fprintf(os, "%d %12.4f %12.4f %12.4f %12.4f\n", spacing*l, x, y, z, fieldvalue) < 0 )  */
+                if ( fprintf(os, "%12.4f %12.4f %12.4f\n", spacing*l, z, fieldvalue) < 0 )
+                {
+                    fprintf(stderr, "Error writing output values for (%d,%d)", k, l);
+                    exit(1);
 
-	}
+                }
+                fprintf(stdout,".");
 
-	z += spacing;
-        fprintf(stdout,"\n");
-    }
-    }
-  
+            } /* end for l */
+
+            z += dz;
+            fprintf(stdout,"\n");
+        } /* end for k */
+    } /* end if option 3 */
+
     fclose(os);
     etree_close(cvm);
-
-    /* printf("Points w/ Vs < 500: %d\n",Vs_lt500); */
 
     printf("Total number of points: %d\n", count);
 
