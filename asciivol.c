@@ -470,12 +470,15 @@ int main(int argc, char **argv)
                     exit(1);
 
                 }
-                fprintf(stdout,".");
+
+                if ( l % ((int)(lmax/50)+1) == 0 ) {
+                    fprintf(stdout,".");
+                }
 
             } /* end for l */
 
             z += dz;
-            fprintf(stdout,"\n");
+            fprintf(stdout," finished row %d of %d\n",k+1,kmax);
         } /* end for k */
     } /* end if option 3 */
 
