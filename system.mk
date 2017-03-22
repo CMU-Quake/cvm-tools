@@ -24,12 +24,12 @@ ifeq ($(SYSTEM), CRAY)
         CC      = cc
         CXX     = CC
         LD      = CC
-        CFLAGS  += -DBIGBEN 
-        LDFLAGS += 
+        CFLAGS  += -DBIGBEN
+        LDFLAGS +=
         ifdef IOBUF_INC
             CPPFLAGS += -I${IOBUF_INC}
-        endif        
-        CPPFLAGS    += -D_USE_FILE_OFFSET64 -D_FILE_OFFSET_BITS=64 -D_USE_LARGEFILE64       
+        endif
+        CPPFLAGS    += -D_USE_FILE_OFFSET64 -D_FILE_OFFSET_BITS=64 -D_USE_LARGEFILE64
 endif
 
 ifeq ($(SYSTEM), MACBOOK)
@@ -42,4 +42,14 @@ ifeq ($(SYSTEM), MACBOOK)
         CFLAGS      += -Wall
         CPPFLAGS    += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 endif
- 
+
+ifeq ($(SYSTEM), MAVERICKS)
+	MPI_DIR      = /opt/local/
+	MPI_INCLUDE  = $(MPI_DIR)/include/openmpi-mp/openmpi/ompi/mpi/cxx
+	CC           = $(MPI_DIR)/bin/mpicc-openmpi-mp
+	CXX          = $(MPI_DIR)/bin/mpicxx-openmpi-mp
+	LD           = $(MPI_DIR)/bin/mpicxx-openmpi-mp
+	CXXFLAGS    += -DMPICH_IGNORE_CXX_SEEK
+	CFLAGS      += -Wall
+	CPPFLAGS    += -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
+endif
